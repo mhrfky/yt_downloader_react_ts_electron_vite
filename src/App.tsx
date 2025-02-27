@@ -1,35 +1,156 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
+import {useState, useEffect, useRef} from 'react'
 import './App.css'
-
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+import {PlayerState, YT, YTPlayer} from "./types/youtube.ts";
+import { YoutubePlayer } from  "./component/VideoPlayer/YoutubePlayer.tsx"
+import {validateYouTubeVideo} from "./youtube_utils.ts";
+import {useClips} from "./hooks/useClips.ts";
+import { ClipsContainer } from './component/VideoEditor/ClipsContainer.tsx';
+import { VideoClip } from './component/VideoEditor/CookieVideoStorage.ts';
+declare global {
+    interface Window {
+        YT: YT;
+        onYouTubeIframeAPIReady: () => void;
+    }
 }
 
-export default App
+function App(): JSX.Element {
+    const [isActive, setIsActive]               = useState<boolean>(false);
+    const [duration, setDuration]               = useState<number>(100);
+    const [videoId, setVideoId]                 = useState<string>("dQw4w9WgXcQ")
+    const [newUrl, setNewUrl]                   = useState<string>('') 
+    const [selectedClipId, setSelectedClipId]   = useState<string | null>(null);
+
+    const playerRef                             = useRef<YTPlayer>(null);  // Now using YTPlayer type directly
+    const inputRef                              = useRef<HTMLInputElement>(null);
+
+
+    const {
+        clips,
+        isLoading,
+        error,
+        fetchClips,
+        addClip,
+        deleteClip,
+        updateClip
+    } = useClips({
+        videoId,
+        duration
+        });
+
+    const handlePlayerReady = (newDuration: number): void => {
+        console.log('Player is ready with duration:', newDuration);
+        setDuration(newDuration);
+        fetchClips();
+    };
+
+    const toggleActive = (): void => {
+        const player = playerRef.current;
+        if (!player) return;
+
+        if (!isActive) {
+            const currentState = player.getPlayerState();
+            if (currentState === PlayerState.UNSTARTED || currentState === PlayerState.ENDED) {
+                player.loadVideoById(videoId);
+            }
+            player.playVideo();
+        } else {
+            player.stopVideo();
+        }
+    };
+
+
+    const handleNewUrl  = async (): Promise<void> => {
+        if (!newUrl) return;
+
+        const result = await validateYouTubeVideo(newUrl);
+        if (result.valid && result.videoId) {
+            console.log(`Valid video ID: ${result.videoId}`);
+            setVideoId(result.videoId);
+            setNewUrl(result.videoId);
+
+        } else {
+            console.log(`Error: ${result.error}`);
+        }
+    };
+
+    const handleDownloadClip = (clip : VideoClip) => {
+        console.log('Download attempted on video ID:', clip.clip_id);
+        // const selectedClip = clips.find(clipId);
+        window.electronAPI.processVideo({
+          
+            url : videoId,
+            options : {start_time: clip.start_time, end_time :clip.end_time}
+        });
+    };
+
+
+
+    const handleTimeChange = (clipId: string, currentFrame: number, start: number, end: number): void => {
+        if(clipId == null || clipId == undefined || clipId != selectedClipId) return;
+        playerRef.current?.seekTo(currentFrame, true); //TODO change here with more protected functions, remove forwardRef 
+        updateClip(clipId, {start_time: start, end_time: end});
+        console.log("frame has been changed to", start, end);
+    };
+
+
+    return (
+        <>
+
+            <div>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={newUrl}
+                    onChange={(e) => setNewUrl(e.target.value)}
+                />
+                <button
+                    onClick={handleNewUrl}
+                    type="button"
+                    className="play-button"
+                >
+                    Change
+
+                </button>
+            </div>
+            <div className="video-controls">
+                <button
+                    onClick={toggleActive}
+                    className="play-button"
+                    type="button"
+                    aria-label={isActive ? 'Stop video' : 'Play video'}
+                >
+                    {isActive ? 'Stop' : 'Play'}
+                </button>
+            </div>
+            <YoutubePlayer
+                ref={playerRef}
+                videoId={videoId}
+                onPlayerReady={handlePlayerReady}
+                onStateChange={setIsActive}
+            />
+            <button
+                onClick={addClip}
+                type="button"
+                className="play-button"
+            >
+                Add Clip
+            </button>
+
+            <div>
+                <ClipsContainer
+                    clips={clips}
+                    isLoading={isLoading}
+                    error={error}
+                    selectedClipId={selectedClipId}
+                    onClipSelect={setSelectedClipId}
+                    onTimeChange={handleTimeChange}
+                    onDelete={deleteClip}
+                    onDownload={handleDownloadClip}
+                    duration={duration}
+                />  
+            </div>
+        </>
+    );
+}
+
+export default App;
