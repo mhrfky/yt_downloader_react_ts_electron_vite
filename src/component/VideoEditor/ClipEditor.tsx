@@ -2,7 +2,7 @@ import VideoTimePicker from "../VideoTimePicker/VideoTimePicker.tsx";
 import * as Slider from "@radix-ui/react-slider";
 import {useEffect, useState} from "react";
 import './styles.css';
-interface VideoEditorProps {
+interface ClipEditorProps {
     id: string;
     duration :  number;
     onTimeChange: (current_frame: number, start: number, end: number) => void;
@@ -13,7 +13,7 @@ interface VideoEditorProps {
     isSelected: boolean;
 }
 
-const VideoEditor: React.FC<VideoEditorProps> = ({duration, onTimeChange,handleDelete,handleDownload,  start, end, isSelected}) => {
+const ClipEditor: React.FC<ClipEditorProps> = ({duration, onTimeChange,handleDelete,handleDownload,  start, end, isSelected}) => {
     const [values, setValues] = useState([start, end]); // Start and end values
     useEffect(() => {
         values[0] = start;
@@ -90,4 +90,4 @@ const VideoEditor: React.FC<VideoEditorProps> = ({duration, onTimeChange,handleD
 
 }
 
-export {VideoEditor};
+export {ClipEditor as VideoEditor};

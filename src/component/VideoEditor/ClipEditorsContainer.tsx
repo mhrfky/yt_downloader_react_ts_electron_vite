@@ -1,7 +1,7 @@
-import { VideoClip } from "./CookieVideoStorage";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
 import { VideoEditor } from "./VideoEditor";
+import {VideoClip} from "../../types/VideoClip.ts";
 
 interface ClipsContainerProps {
     clips: VideoClip[];
