@@ -15,16 +15,18 @@ async def get_clip(clip_id):
 
 @clip_bp.route('/', methods=['GET'])
 async def get_clips():
+    logger.info("getting clips")
     return await clip_controller.get_clips()
 
 @clip_bp.route('/', methods=['POST'])
 async def add_new_clip():
+    logger.info("Adding new clip in flask")
     if not request.is_json:
         return jsonify({'error': 'Request must be JSON'}), 400
     json_data = request.get_json()
     return await clip_controller.create_clip(json_data)
 
-@clip_bp.route('/<clip_id>', methods=['PATCH', 'UPDATE'])
+@clip_bp.route('/<clip_id>', methods=['PATCH'])
 async def update_clip(clip_id):
     logger.info("Updating clip in flask")
     if not request.is_json:

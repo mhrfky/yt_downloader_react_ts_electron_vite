@@ -29,8 +29,10 @@ class ClipController:
         return jsonify(serialize_clip(clip)), 200
 
     async def create_clip(self, data):
+        logger.info("Creating new clip in flask")
         try:
             new_clip = await self.clip_service.create_clip(data)
+            logger.info(f"Clip with id: {new_clip.clip_id} created successfully")
             return jsonify(serialize_clip(new_clip)), 201
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
@@ -42,7 +44,7 @@ class ClipController:
 
     async def update_clip(self, clip_id, data):
         try:
-            updated_clip = await asyncio.to_thread(self.clip_service.update_clip, clip_id, data)
+            updated_clip = await self.clip_service.update_clip(clip_id, data)  # Direct await
             if not updated_clip:
                 return jsonify({'error': f'Clip_id : {clip_id} not found'}), 404
             return jsonify(serialize_clip(updated_clip)), 200
@@ -54,7 +56,7 @@ class ClipController:
 
     async def delete_clip(self, clip_id):
         try:
-            await asyncio.to_thread(self.clip_service.delete_clip, clip_id)
+            await self.clip_service.delete_clip(clip_id)
             return jsonify({'message': 'Clip deleted successfully'}), 200
         except ClipNotFoundError as e:
             return jsonify({'error': str(e)}), 404

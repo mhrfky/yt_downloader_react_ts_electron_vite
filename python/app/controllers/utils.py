@@ -1,10 +1,11 @@
 def serialize_video(video):
     """Convert a Video model instance to a dictionary."""
     return {
-        'video_id': video.video_id,
+        'videoId': video.video_id,
         'title': video.title,
         'duration': video.duration,
         'clips': [clip.id for clip in video.clips],  # assuming a relationship exists
+        'thumbnail': video.thumbnail,
         'created_at': video.created_at.isoformat() if video.created_at else None,
         'updated_at': video.updated_at.isoformat() if video.updated_at else None
     }

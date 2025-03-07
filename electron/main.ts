@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { checkSystemRequirements } from './utils/systemCheck'
 import { PythonService } from './utils/pythonBridge'
+import { Axios, AxiosError } from 'axios'
 
 // Setup logging function
 function setupLogging() {
@@ -74,7 +75,7 @@ function setupIPCHandlers() {
       console.log('System requirements check result:', result)
       return result
     } catch (error) {
-      console.error('Error checking system requirements:', error)
+      console.error('Error checking system requirements:', (error as AxiosError).message)
       throw error
     }
   })
@@ -93,7 +94,7 @@ function setupIPCHandlers() {
       console.log('Video processing result:', result);
       return result;
     } catch (error) {
-      console.error('Error processing video:', error);
+      console.error('Error processing video:', (error as AxiosError).message)
       throw error;
     }
   });
@@ -105,7 +106,7 @@ function setupIPCHandlers() {
       console.log('Status result:', status)
       return status
     } catch (error) {
-      console.error('Error getting status:', error)
+      console.error('Error getting status:', (error as AxiosError).message)
       throw error
     }
   })
@@ -116,7 +117,7 @@ function setupIPCHandlers() {
       console.log('Clip creation result:', result)
       return result
     } catch (error) {
-      console.error('Error creating clip:', error)
+      console.error('Error creating clip:', (error as AxiosError).message)
       throw error
     }
   })
@@ -127,7 +128,18 @@ function setupIPCHandlers() {
       console.log('Clip retrieval result:', result)
       return result
     } catch (error) {
-      console.error('Error getting clips:', error)
+      console.error('Error getting clips:', (error as AxiosError).message)
+      throw error
+    }
+  })
+  ipcMain.handle('get-videos', async (event) => {
+    console.log('Handling get-videos request')
+    try {
+      const result = await pythonService.getVideos()
+      console.log('Video retrieval result:', result)
+      return result
+    } catch (error) {
+      console.error('Error getting videos:', (error as AxiosError).message)
       throw error
     }
   })
@@ -138,7 +150,7 @@ function setupIPCHandlers() {
       console.log('Clip deletion result:', result)
       return result
     } catch (error) {
-      console.error('Error deleting clip:', error)
+      console.error('Error deleting clip:', (error as AxiosError).message)
       throw error
     }
   })
@@ -149,8 +161,8 @@ function setupIPCHandlers() {
       console.log('Clip update result:', result)
       return result
     } catch (error) {
-      console.error('Error updating clip:', error)
-      throw error
+      console.error('Error updating clip:', (error as AxiosError).message)
+        throw error
     }
   })
 }

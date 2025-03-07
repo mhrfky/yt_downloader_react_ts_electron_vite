@@ -19,6 +19,7 @@ class VideoService:
         return self.db_session.query(Video).filter_by(video_id=video_id).first()
 
     async def create_or_get_video(self, video_id, title=None, duration=None):
+        logger.info("Creating or getting video in flask %s", video_id)
         video = self.get_video(video_id)
         if video:
             return video, False
@@ -28,16 +29,26 @@ class VideoService:
             title=title or f"Video {video_id}",
             duration=duration
         )
+        
+        logger.info(f"Video to be added is created: {video}")
 
         try:
             self.db_session.add(video)
-            # Flush to get an ID without a full commit (if needed)
+            logger.info("Flushing the video to the database.")
             self.db_session.flush()
-            # Offload the metadata update to a separate thread with an app context
+            logger.info(f"Video flushed, state: {video}")
+
+            # After flushing, commit the transaction to make the video persistent
+            self.db_session.commit()
+            logger.info("Video committed successfully.")
+
+            # Start the background update thread after committing
             self._fire_update_in_background(video_id)
+
             return video, True
         except Exception as e:
             self.db_session.rollback()
+            logger.error(f"Error creating video: {e}")
             raise e
 
     def _fire_update_in_background(self, video_id):
@@ -47,12 +58,13 @@ class VideoService:
         """
         # Capture the current application (not the proxy)
         app = current_app._get_current_object()
-        
+
         def run_update():
             # Push the app context in this new thread
             with app.app_context():
                 asyncio.run(self.update_video_async(video_id))
-        
+
+        # Start a new thread for the background update process
         thread = threading.Thread(target=run_update, daemon=True)
         thread.start()
 
@@ -76,6 +88,7 @@ class VideoService:
             logger.info("Metadata fetched: %s", metadata)
             video.title = metadata["title"]
             video.duration = metadata["duration"]
+            video.thumbnail = metadata["thumbnail"]
             logger.info("Video metadata updated: %s %i", video.title, video.duration)
             await async_session.commit()
         except Exception as e:
@@ -84,11 +97,17 @@ class VideoService:
         finally:
             await async_session.close()
     async def get_videos_clips(self, video_id):
-        video = self.db_session.query(Video).filter_by(video_id=video_id).first()
-        if not video:
-            raise VideoNotFoundError("Video not found")
+        try:
+            video = self.db_session.query(Video).filter_by(video_id=video_id).first()
+            if not video:
+                return []
+            return video.clips
+        except VideoNotFoundError as e:
+            return []
+        except Exception as e:
+            logger.error(f"Error getting clips: {str(e)}")
+            return []
         
-        return video.clips
     def get_all_videos(self):
         return self.db_session.query(Video).all()
 
@@ -103,4 +122,3 @@ class VideoService:
         except Exception as e:
             self.db_session.rollback()
             raise e
-

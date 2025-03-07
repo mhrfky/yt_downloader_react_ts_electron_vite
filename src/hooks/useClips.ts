@@ -1,11 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
-import { ClipsState } from '../types/clips';
-import { VideoClip } from '../component/VideoEditor/CookieVideoStorage';
-import { debounce } from 'lodash';
+import {useEffect, useMemo, useState} from 'react';
+import {debounce} from 'lodash';
+import {VideoClip} from "../types/VideoClip.ts";
 
 interface UseVideoClipsProps {
     videoId: string;
     duration: number;
+}
+
+export interface ClipsState {
+    data: VideoClip[];
+    isLoading: boolean;
+    error: Error | null;
 }
 
 export function useClips({ videoId, duration }: UseVideoClipsProps) {
@@ -18,9 +23,12 @@ export function useClips({ videoId, duration }: UseVideoClipsProps) {
     // Debounced update function remains the same.
     const update = useMemo(
         () =>
-            debounce((clipId: string, updates: Partial<VideoClip>) => {
+            debounce((clipId: string, updates: Partial<VideoClip>, callback?: () => void) => {
                 console.log("Clip ID:", clipId, "Updates:", updates);
-                window.electronAPI.update_clip(clipId, updates);
+                window.electronAPI.update_clip(clipId, updates)
+                .then(() => {
+                  if (callback) callback();
+                });
             }, 1000),
         []
     );

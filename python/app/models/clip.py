@@ -2,6 +2,7 @@
 from app.database import db
 from datetime import datetime
 import uuid
+from sqlalchemy import event
 
 class Clip(db.Model):
     __tablename__ = 'clips'
@@ -18,3 +19,6 @@ class Clip(db.Model):
 
     def __repr__(self):
         return f'<Clip {self.clip_id}>'
+
+
+

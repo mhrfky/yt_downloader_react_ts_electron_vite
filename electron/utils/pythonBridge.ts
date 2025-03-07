@@ -126,4 +126,13 @@ export class PythonService {
             this.pythonProcess.kill();
         }
     }
+    public async getVideos(){
+        try {
+            const response = await axios.get(`${this.serverUrl}/videos`);
+            return response.data;
+        } catch (error) {
+            console.error('Error getting videos:', error);
+            throw error;
+        }
+    }
 }

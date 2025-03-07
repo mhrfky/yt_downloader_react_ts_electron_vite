@@ -7,6 +7,7 @@ from app.services.video_service import VideoService
 from app.database import db
 from app.core.exceptions import VideoNotFoundError
 from .utils import serialize_clip
+import asyncio
 logger = logging.getLogger(__name__)
 
 class VideoController:
@@ -36,8 +37,24 @@ class VideoController:
             return jsonify({'error': 'An unexpected error occurred'}), 500
     
     async def get_videos_clips(self, video_id):
-        logger.info("trying to get the clips from vode with id: ", video_id)
-        clips = await self.video_service.get_videos_clips(video_id)
-        logger.info("aaaaaa",clips, [serialize_clip(clip) for clip in clips])
-        return jsonify([serialize_clip(clip) for clip in clips]), 200
+        try:
+            logger.info(f"trying to get the clips from vode with id: {video_id}")
+            clips = await self.video_service.get_videos_clips(video_id)
+            logger.info([serialize_clip(clip) for clip in clips])
+            return jsonify([serialize_clip(clip) for clip in clips]), 200
+        except VideoNotFoundError as e:
+            return jsonify({'error': str(e)}), 404
+        except Exception as e:
+            logger.error(f"Error getting clips: {str(e)}")
+            return jsonify({'error': 'An unexpected error occurred'}), 500
 
+    async def update_video_info(self):
+        try:
+            logger.info(f"attempting to update video info")
+            videos = await asyncio.to_thread(self.video_service.get_all_videos)
+            for video in videos:
+                await self.video_service.update_video_async(video.video_id)
+            return jsonify({'message': 'Video info updated successfully'}), 200
+        except Exception as e:
+            logger.error(f"Error updating video info: {str(e)}")
+            return jsonify({'error': 'An unexpected error occurred'}), 500
